@@ -1,0 +1,104 @@
+{
+  "schema": {
+    "version": "1.0",
+    "task_id": "exp-241",
+    "description": "Normalized billing export schema for pilot property validation",
+    "fields": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "description": "Unique property identifier"
+      },
+      {
+        "name": "billing_period",
+        "type": "object",
+        "required": true,
+        "properties": {
+          "start_date": "YYYY-MM-DD",
+          "end_date": "YYYY-MM-DD",
+          "cycle_number": "integer"
+        }
+      },
+      {
+        "name": "service_lines",
+        "type": "array",
+        "items": {
+          "service_type": "enum (water, wastewater, recycled_water, stormwater)",
+          "units_consumed": "decimal",
+          "unit_rate": "decimal",
+          "line_total": "decimal"
+        }
+      },
+      {
+        "name": "charges",
+        "type": "object",
+        "properties": {
+          "subtotal": "decimal",
+          "taxes": "decimal",
+          "fees": "decimal",
+          "credits": "decimal",
+          "total_due": "decimal"
+        }
+      }
+    ]
+  },
+  "field_mappings": {
+    "legacy_property_code": "property_id",
+    "bill_start": "billing_period.start_date",
+    "bill_end": "billing_period.end_date",
+    "service_category": "service_lines[].service_type",
+    "consumed": "service_lines[].units_consumed"
+  },
+  "validation_rules": [
+    {
+      "rule": "property_id_not_empty",
+      "condition": "property_id length > 0",
+      "error_message": "Property ID cannot be empty"
+    },
+    {
+      "rule": "dates_valid_range",
+      "condition": "billing_period.start_date < billing_period.end_date",
+      "error_message": "Billing period end date must be after start date"
+    },
+    {
+      "rule": "amounts_non_negative",
+      "condition": "all numeric fields >= 0",
+      "error_message": "Amounts cannot be negative"
+    },
+    {
+      "rule": "total_reconciliation",
+      "condition": "charges.total_due == (subtotal + taxes + fees - credits)",
+      "error_message": "Total due does not reconcile with line items"
+    }
+  ],
+  "sample_payload": {
+    "property_id": "RN-2024-001",
+    "billing_period": {
+      "start_date": "2026-04-01",
+      "end_date": "2026-04-30",
+      "cycle_number": 1
+    },
+    "service_lines": [
+      {
+        "service_type": "water",
+        "units_consumed": 15000.5,
+        "unit_rate": 2.15,
+        "line_total": 32250.75
+      },
+      {
+        "service_type": "wastewater",
+        "units_consumed": 14200.0,
+        "unit_rate": 3.85,
+        "line_total": 54670.0
+      }
+    ],
+    "charges": {
+      "subtotal": 86920.75,
+      "taxes": 6514.06,
+      "fees": 250.0,
+      "credits": 0.0,
+      "total_due": 93684.81
+    }
+  }
+}
